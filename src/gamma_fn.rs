@@ -1,5 +1,5 @@
 const PI: f64 = std::f64::consts::PI;
-const LOG_2PI: f64 = 1.837877066409345488_f64;
+const LOG_2PI: f64 = 1.8378770664093453_f64;
 
 const N: f64 = 8.0;
 
@@ -76,10 +76,52 @@ pub fn gamma(x: f64) -> f64 {
     }
 }
 
+#[cfg(test)]
+use super::test_util::*;
+
 #[test]
 fn test_consts(){
-    fn assert_equiv(x: f64, y: f64){
-        assert!((x - y).abs() <= 1e-15);
+    assert_eq!(LOG_2PI, std::f64::consts::TAU.ln());
+}
+
+#[test]
+fn test_the_values_of_positive_integers_are_factorials(){
+    let mut exp = 1.0;
+    for n in 1..20 {
+        let x = n as f64;
+        assert_approximately(gamma(x), exp, EPS, "Γ(n) = (n-1)!");
+        exp *= x;
     }
-    assert_equiv(LOG_2PI, std::f64::consts::TAU.ln());
+}
+
+#[test]
+fn test_the_values_of_half_integers(){
+    let sqrt_pi: f64 = PI.sqrt();
+    assert_approximately(gamma(0.5), sqrt_pi,         EPS, "Γ(1/2) = √π");
+    assert_approximately(gamma(1.5), sqrt_pi/2.0,     EPS, "Γ(3/2) = √π/2");
+    assert_approximately(gamma(2.5), sqrt_pi*3.0/4.0, EPS, "Γ(5/2) = 3√π4");
+    
+    assert_approximately(gamma(-0.5), -2.0*sqrt_pi,    EPS, "Γ(-1/2) = -2√π");
+    assert_approximately(gamma(-1.5), 4.0*sqrt_pi/3.0, EPS, "Γ(-3/2) = 4√π/3");
+}
+
+#[test]
+fn test_diverging_at_zero_or_negative_integers(){
+    for n in 0..=5 {
+        let x = -n as f64;
+        assert_diverging(gamma(x), BIG_VALUE, "Γ(-n) ~ ±∞");
+    }
+}
+
+#[test]
+fn test_the_gamma_function_properties(){
+    assert_the_same_mathfn(
+        |x| gamma(x + 1.0), 
+        |x| x * gamma(x), 
+        |x| !(x <= 0.0 && x.round() == x), "Γ(x + 1) = xΓ(x)");
+
+    assert_the_same_mathfn(
+        |x| gamma(1.0 - x) * gamma(x), 
+        |x| PI / (PI * x).sin(), 
+        |x| x.round() != x, "Γ(1 - x)Γ(x) = π/sin(πx)");
 }
