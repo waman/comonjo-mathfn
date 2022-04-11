@@ -85,7 +85,7 @@ fn test_consts(){
 }
 
 #[test]
-fn test_the_values_of_positive_integers_are_factorials(){
+fn test_the_values_at_positive_integers_are_factorials(){
     let mut exp = 1.0;
     for n in 1..20 {
         let x = n as f64;
@@ -95,7 +95,7 @@ fn test_the_values_of_positive_integers_are_factorials(){
 }
 
 #[test]
-fn test_the_values_of_half_integers(){
+fn test_the_values_at_half_integers(){
     let sqrt_pi: f64 = PI.sqrt();
     assert_approximately(gamma(0.5), sqrt_pi,         EPS, "Γ(1/2) = √π");
     assert_approximately(gamma(1.5), sqrt_pi/2.0,     EPS, "Γ(3/2) = √π/2");
