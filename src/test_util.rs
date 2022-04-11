@@ -55,7 +55,7 @@ pub fn assert_diverging(x: f64, big_value: f64, message: &str){
 //     max?: number;
 // }
 
-pub fn assert_the_same_mathfn<F, G, C>(f: F, g: G, filter: C, message: &str)
+pub fn assert_the_same_mathfn<F, G, C>(message: &str, f: F, g: G, filter: C)
     where F: Fn(f64) -> f64, G: Fn(f64) -> f64, C: Fn(f64) -> bool
 {
     let min = -5.0;
@@ -71,27 +71,15 @@ pub fn assert_the_same_mathfn<F, G, C>(f: F, g: G, filter: C, message: &str)
         if filter(x) {
             let yf = f(x);
             let yg = g(x);
-            if both_are_nan(yf, yg) { return; }
-            if both_are_infinite(yf, yg) { return; }
+            if yf.is_nan() && yg.is_nan() { return; }
+            if yf.is_infinite() && yg.is_infinite() { return; }
 
-            if either_is_infinite(yf, yg) {
+            if yf.is_infinite() || yg.is_infinite() {
                 assert!(yf.abs() > BIG_VALUE && yg.abs() > BIG_VALUE, "{}", message);
             }else{
                 assert_approximately(f(x), g(x), error, 
                 &format!("{} at x = {}", message, x));
             }
-        }
-    
-        fn both_are_nan(x: f64, y: f64) -> bool {
-            x.is_nan() && y.is_nan()
-        }
-
-        fn both_are_infinite(x: f64, y: f64) -> bool {
-            x.is_infinite() && y.is_infinite()
-        }
-
-        fn either_is_infinite(x: f64, y: f64) -> bool {
-            x.is_infinite() || y.is_infinite()
         }
     }
 

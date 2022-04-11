@@ -116,12 +116,14 @@ fn test_diverging_at_zero_or_negative_integers(){
 #[test]
 fn test_the_gamma_function_properties(){
     assert_the_same_mathfn(
+        "Γ(x + 1) = xΓ(x)", 
         |x| gamma(x + 1.0), 
         |x| x * gamma(x), 
-        |x| !(x <= 0.0 && x.round() == x), "Γ(x + 1) = xΓ(x)");
+        |x| !(x <= 0.0 && x.round() == x));
 
     assert_the_same_mathfn(
+        "Γ(1 - x)Γ(x) = π/sin(πx)", 
         |x| gamma(1.0 - x) * gamma(x), 
         |x| PI / (PI * x).sin(), 
-        |x| x.round() != x, "Γ(1 - x)Γ(x) = π/sin(πx)");
+        |x| x.round() != x);
 }
