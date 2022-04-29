@@ -14,11 +14,27 @@ const B16: f64 = -3617. / 510.;
 
 /// Return the logarithm of the gamma function *log Γ(x)*.
 /// (The argument *x* must be positive.)
+/// 
+/// ```
+/// use comonjo_mathfn::log_gamma;
+/// 
+/// assert!(log_gamma(1.).abs() < 1e-10, "logΓ(1) = 0");
+/// 
+/// use std::f64::INFINITY as INF;
+/// 
+/// assert!(log_gamma(0.) == INF, "logΓ(0) = ∞");
+/// assert_eq!(log_gamma(-1.), INF, "logΓ(-1) = ∞");
+/// assert_eq!(log_gamma(-2.), INF, "logΓ(-2) = ∞");
+/// 
+/// assert!(log_gamma(-0.5).is_nan(), "logΓ(-0.5) = NaN");
+/// assert_eq!(log_gamma(-1.5), 0.8600470153764803_f64,
+///     "logΓ(-1.5) = logΓ(0.5) - ln(1.5) - ln(0.5)");
+/// assert!(log_gamma(-2.5).is_nan(), "logΓ(-2.5) = NaN");
+/// ```
 ///
 /// Ref: 『改訂新版 Cによる標準アルゴリズム事典』ガンマ関数 (gamma function) gamma.c
 pub fn log_gamma(mut x: f64) -> f64 {
-    debug_assert!(x > 0., "argument must be positive: {}", x);
-
+    // debug_assert!(x >= 0., "The argument of logΓ(x) must be non-negative: {}", x);
     let mut v: f64 = 1.;
     while x < N {
         v *= x;
@@ -116,14 +132,16 @@ fn test_diverging_at_zero_or_negative_integers(){
 fn test_the_gamma_function_properties(){
     const DELTA: f64 = 1e-3;
 
-    should_the_same_mathfn("Γ(x + 1) = xΓ(x)", 
-        |x| gamma(x + 1.), 
-        |x| x * gamma(x))
+    should_the_same_mathfn(
+        "Γ(x + 1) = xΓ(x)", 
+            |x| gamma(x + 1.), 
+            |x| x * gamma(x))
         .filter(|x| !x.is_non_positive_integer(DELTA)).assert();
 
-    should_the_same_mathfn("Γ(1 - x)Γ(x) = π/sin(πx)", 
-        |x| gamma(1. - x) * gamma(x), 
-        |x| PI / (PI * x).sin())
+    should_the_same_mathfn(
+        "Γ(1 - x)Γ(x) = π/sin(πx)", 
+            |x| gamma(1. - x) * gamma(x), 
+            |x| PI / (PI * x).sin())
         .filter(|x| !x.is_integer(DELTA))
         .epsilon(1e-11).assert();
 }

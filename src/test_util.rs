@@ -32,41 +32,40 @@ pub fn assert_approximately(x: f64, y: f64, eps: f64, message: &str){
     if x.is_nan() || y.is_nan() {
          assert!(x.is_nan() && y.is_nan(),
             "{} --- only either value is nan: {}, {}", message, x, y);
-
-    }else if x.is_infinite() || y.is_infinite() {
-        assert!(x * y > 0. &&  x.abs() >= BIG_VALUE && y.abs() >= BIG_VALUE,
-            "{} --- only either value diverge: {}, {}", message, x, y);
-
+    
     }else{
+        let x_abs = x.abs();
         let y_abs = y.abs();
-        // let sqrt_eps = eps.sqrt();
-        if y_abs > 1. {
-            let error = y_abs * eps;
-            assert_approx(x, y, error, message);
-        // } else if y_abs < sqrt_eps {
-        //     assert_approx(x, y, sqrt_eps, message);
+        
+        if x_abs >= BIG_VALUE || y_abs >= BIG_VALUE {
+            assert!(x * y > 0. &&  x_abs >= BIG_VALUE && y_abs >= BIG_VALUE,
+                "{} --- only either value diverge: {}, {}", message, x, y);
 
-        } else {
-            assert_approx(x, y, eps, message);
-
-        }
-
-        fn assert_approx(x: f64, y: f64, error: f64, message: &str){
-            assert!((x - y).abs() < error, "{}", format!("{}: {} != {} +- {} (error ratio: 1e-{})",
-                    message, x, y, error, ratio(x, y)));
-        }
-
-        fn ratio(x: f64, y: f64) -> usize { 
-            let r = ((x - y) / x).abs();
-            let mut s = 0.1;
-            let mut n = 1;
-            while s > r {
-                s /= 10.;
-                n += 1;
+        }else{
+            if y_abs > 1. {
+                let error = y_abs * eps;
+                assert_approx(x, y, error, message);
+            } else {
+                assert_approx(x, y, eps, message);
             }
-            n
-        } 
+        }
     }
+
+    fn assert_approx(x: f64, y: f64, error: f64, message: &str){
+        assert!((x - y).abs() < error, "{}", format!("{}: {} != {} +- {} (error ratio: 1e-{})",
+                message, x, y, error, ratio(x, y)));
+    }
+
+    fn ratio(x: f64, y: f64) -> usize { 
+        let r = ((x - y) / x).abs();
+        let mut s = 0.1;
+        let mut n = 1;
+        while s > r {
+            s /= 10.;
+            n += 1;
+        }
+        n
+    } 
 }
 
 pub fn assert_diverging(x: f64, big_value: f64, message: &str){
@@ -74,7 +73,7 @@ pub fn assert_diverging(x: f64, big_value: f64, message: &str){
          "{:?}: {} is not diverging (big value: {})", message, x, big_value);
 }
 
-struct TestVariable<'a>{
+pub struct TestVariable<'a>{
     _name: &'a str,
     _range: (f64, f64),
     _n: usize,
@@ -82,6 +81,23 @@ struct TestVariable<'a>{
 }
 
 impl<'a> TestVariable<'a> {
+
+    pub fn name(&mut self, new_name: &'a str) -> &mut Self {
+        self._name = new_name;
+        self
+    }
+
+    pub fn range(&mut self, min: f64, max: f64) -> &mut Self {
+        self._range = (min, max);
+        self
+    }
+
+    pub fn is_integer(&mut self, b: bool) -> &mut Self {
+        self._is_integer = b;
+        self
+    }
+
+    pub fn end(&self){()}
     
     fn at_even_intervals<F>(&self, f: F) where F: Fn(f64) {
         if self._is_integer {
@@ -151,6 +167,13 @@ impl<'a, F, G> MathFnTest<'a, F, G>
         self
     }
 
+    pub fn var0<S>(&mut self, settings: S) -> &mut Self
+        where S: Fn(&mut TestVariable<'a>)
+    {
+        settings(&mut self._var);
+        self
+    }
+
     pub fn epsilon(&mut self, eps: f64) -> &mut Self {
         self._epsilon = eps;
         self
@@ -189,8 +212,8 @@ pub struct MathFnTest2<'a, F, G>
     message: &'a str,
     f: F,
     g: G,
-    var0: TestVariable<'a>,
-    var1: TestVariable<'a>,
+    _var0: TestVariable<'a>,
+    _var1: TestVariable<'a>,
     _filter: Box<dyn Fn(f64, f64) -> bool>,
     _epsilon: f64
 }
@@ -203,8 +226,8 @@ impl<'a, F, G> MathFnTest2<'a, F, G>
         let v = TestVariable{ _name: "y", _range: (-5., 5.), _n: 100, _is_integer: false };
         MathFnTest2{
             message, f, g,
-            var0: TestVariable{ _name: "x", .. v },
-            var1: v,
+            _var0: TestVariable{ _name: "x", .. v },
+            _var1: v,
             _filter: Box::new(|_x, _y| true),
             _epsilon: EPS
         }
@@ -217,6 +240,20 @@ impl<'a, F, G> MathFnTest2<'a, F, G>
         self
     }
 
+    pub fn var0<S>(&mut self, settings: S) -> &mut Self
+        where S: Fn(&mut TestVariable<'a>)
+    {
+        settings(&mut self._var0);
+        self
+    }
+
+    pub fn var1<'b, S>(&mut self, settings: S) -> &mut Self
+        where S: Fn(&mut TestVariable<'a>)
+    {
+        settings(&mut self._var1);
+        self
+    }
+
     pub fn epsilon(&mut self, eps: f64) -> &mut Self {
         self._epsilon = eps;
         self
@@ -226,20 +263,20 @@ impl<'a, F, G> MathFnTest2<'a, F, G>
         if (self._filter)(x, y) {
             assert_approximately((self.f)(x, y), (self.g)(x, y), self._epsilon,
                 &format!("{} at ({}, {}) = ({}, {})",
-                    self.message, self.var0._name, self.var1._name, x, y));
+                    self.message, self._var0._name, self._var1._name, x, y));
         }
     }
     
     pub fn assert(&self){
-        self.var1.at_even_intervals(|y| {
-            self.var0.at_even_intervals(|x| {
+        self._var1.at_even_intervals(|y| {
+            self._var0.at_even_intervals(|x| {
                 self.assert_at(x, y);
             });
         });
         
-        if self.var0._is_integer && self.var1._is_integer { return; }
-        self.var1.at_random(|y| {
-            self.var0.at_random(|x| {
+        if self._var0._is_integer && self._var1._is_integer { return; }
+        self._var1.at_random(|y| {
+            self._var0.at_random(|x| {
                 self.assert_at(x, y);
             });
         });

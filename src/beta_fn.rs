@@ -50,10 +50,15 @@ use std::f64::consts::PI;
 fn test_diverging_if_the_one_of_the_arguments_is_zero_or_negative_integers(){
     repeat(10, ||{
         let y: f64 = rand(-5., 5.);
+        let big_value: f64 = if (y - y.round()).abs() < 0.05 { 1e8 } else { BIG_VALUE };
         for i in 0..=5 {
             let x = -i as f64;
-            assert_diverging(beta(x, y), BIG_VALUE, &format!("B(-n, y) ~ ±∞ at (-n, y) = ({}, {})", x, y));
-            assert_diverging(beta(y, x), BIG_VALUE, &format!("B(x, -n) ~ ±∞ at (x, -n) = ({}, {})", y, x));
+
+            assert_diverging(beta(x, y), big_value,
+                &format!("B(-n, y) ~ ±∞ at (-n, y) = ({}, {})", x, y));
+
+            assert_diverging(beta(y, x), big_value,
+                &format!("B(x, -n) ~ ±∞ at (x, -n) = ({}, {})", y, x));
         }
     })
 }
@@ -62,31 +67,36 @@ fn test_diverging_if_the_one_of_the_arguments_is_zero_or_negative_integers(){
 fn test_the_beta_function_properties(){
     const DELTA: f64 = 1e-3;
     
-    should_the_same_mathfn2("Β(x, y) = Β(y, x)", 
-        |x, y| beta(x, y), 
-        |x, y| beta(y, x))
+    should_the_same_mathfn2(
+        "Β(x, y) = Β(y, x)", 
+            |x, y| beta(x, y), 
+            |x, y| beta(y, x))
         .filter(|x, y| !x.is_non_positive_integer(DELTA) && !y.is_non_positive_integer(DELTA))
         .assert();
 
-    should_the_same_mathfn2("xΒ(x, y+1) = yΒ(x+1, y)", 
-        |x, y| x * beta(x, y + 1.), 
-        |x, y| y * beta(x + 1., y))
+    should_the_same_mathfn2(
+        "xΒ(x, y+1) = yΒ(x+1, y)", 
+            |x, y| x * beta(x, y + 1.), 
+            |x, y| y * beta(x + 1., y))
         .filter(|x, y| !x.is_non_positive_integer(DELTA) && !y.is_non_positive_integer(DELTA))
         .epsilon(1e-11).assert();
 
-    should_the_same_mathfn2("B(x, y) = B(x, y+1) + B(x+1, y)", 
-        |x, y| beta(x, y), 
-        |x, y| beta(x, y + 1.) + beta(x + 1., y))
+    should_the_same_mathfn2(
+        "B(x, y) = B(x, y+1) + B(x+1, y)", 
+            |x, y| beta(x, y), 
+            |x, y| beta(x, y + 1.) + beta(x + 1., y))
         .filter(|x, y| !x.is_non_positive_integer(DELTA) && !y.is_non_positive_integer(DELTA))
         .epsilon(1e-11).assert();
 
-    should_the_same_mathfn("B(1, x) = 1/x", 
-        |x| beta(1., x), 
-        |x| 1. / x)
+    should_the_same_mathfn(
+        "B(1, x) = 1/x", 
+            |x| beta(1., x), 
+            |x| 1. / x)
         .filter(|x| x > 0.).assert();
 
-    should_the_same_mathfn("B(x, 1-x) = π/sin(πx)", 
-        |x| beta(x, 1. - x), 
-        |x| PI / (PI * x).sin())
+    should_the_same_mathfn(
+        "B(x, 1-x) = π/sin(πx)", 
+            |x| beta(x, 1. - x), 
+            |x| PI / (PI * x).sin())
         .filter(|x| !x.is_integer(DELTA)).assert();
 }
