@@ -14,28 +14,40 @@ fn p_gamma_normalizable(s: f64, x: f64, log_gamma_s: f64) -> f64 {
     if x >= 1. + s { return 1. - q_gamma_normalizable(s, x, log_gamma_s); }
     if x == 0. { return 0.; }
 
-    let mut result = x.powf(s) * (-x - log_gamma_s).exp() / s;
+    // let mut result = x.powf(s) * (-x - log_gamma_s).exp() / s;
     // let mut result = (s * x.ln() - x - log_gamma_s).exp() / s;
         // The above line doesn't work when s is a non-positive integer and x is negative.
-    let mut term = result;
-    let mut k = 1.;
-    while k < 1000. {
-        let prev = result;
-        term *= x / (s + k);
-        result += term;
-        if result == prev { return result; }
-        k += 1.;
+
+    // let mut term = result;
+    // let mut k = 1.;
+    // while k < 1000. {
+    //     let prev = result;
+    //     term *= x / (s + k);
+    //     result += term;
+    //     if result == prev { return result; }
+    //     k += 1.;
+    // }
+
+    // std::f64::NAN;
+
+    let a0 = x.powf(s) * (-x - log_gamma_s).exp() / s;
+    hyper_geometric_series(a0, |k| x / (s + k), 1., 1000.)
+}
+
+fn hyper_geometric_series<F>(mut a: f64, mut nth_additional_factor: F, mut n0: f64, n_max: f64) -> f64
+    where F: FnMut(f64) -> f64
+{
+    let mut term = a;
+    while n0 < n_max {
+        let prev = a;
+        term *= nth_additional_factor(n0);
+        a += term;
+        if a == prev { return a; }
+        n0 += 1.;
     }
-    // (1..).map(|k| k as f64).map(|k| x / (s + k))
-    // .scan(result, |term, factor|{
-    //     *term = *term * factor;
-    //     Some(*term)
-    // }).scan(0., |sum, term|{
-    //     *sum = *sum + term;
-    //     Some(sum)
-    // })
+
     std::f64::NAN
-} 
+}
 
 /// Return a value of the upper incomplete gamma function.
 /// The normalization factor can be manually specified by the last argument.
@@ -46,7 +58,8 @@ fn q_gamma_normalizable(s: f64, x: f64, log_gamma_s: f64) -> f64 {
 
     let mut w = x.powf(s) * (-x - log_gamma_s).exp();
     // let mut w = (s * x.ln() - x - log_gamma_s).exp();
-        // The above line doesn't work when s is a non-positive integer and x is negative.
+       // The above line doesn't work when s is a non-positive integer and x is negative.
+    
     let mut la = 1.; let mut lb = 1. + x - s;
     let mut result = w / lb;
     let mut k = 2.;
@@ -61,6 +74,27 @@ fn q_gamma_normalizable(s: f64, x: f64, log_gamma_s: f64) -> f64 {
         k += 1.;
     }
     return std::f64::NAN;
+
+    // let la = 1.; let lb = 1. + x - s;
+    // let mut laguerre2 = std::iter::successors(Some((1., la, lb)), |&(k, la, lb)|{
+    //     let k_ = k+1.;
+    //     let temp = ((k_-1.-s)*(lb-la) + (k_+x)*lb)/k_;
+    //     Some((k_, lb, temp))
+    // }).map(|(_, la, lb)| (la, lb)).skip(1);
+
+    // let mut w = x.powf(s) * (-x - log_gamma_s).exp();
+    // let mut result = w / lb;
+    // let mut k = 2.;
+    // while k < 1000. {
+    //     let prev = result;
+    //     w *= (k-1.-s)/k;
+    //     let (la, lb) = laguerre2.next().unwrap();
+    //     let term = w/(la*lb);
+    //     result += term;
+    //     if result == prev { return result; }
+    //     k += 1.;
+    // }
+    // return std::f64::NAN;
 }
 
 //***** incomplete gamma function *****
