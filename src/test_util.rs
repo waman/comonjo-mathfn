@@ -3,19 +3,12 @@ use rand::random;
 pub const EPS: f64 = 1e-12;
 pub const BIG_VALUE: f64 = 1e13;
 
-pub trait IsInteger {
-    fn is_integer(&self, delta: f64) -> bool;
-    fn is_non_positive_integer(&self, delta: f64) -> bool;
+pub fn is_close_to_an_integer(x: f64, delta: f64) -> bool {
+    (x - x.round()).abs() <= delta
 }
 
-impl IsInteger for f64 {
-    fn is_integer(&self, delta: f64) -> bool {
-        (*self - self.round()).abs() <= delta
-    }
-    
-    fn is_non_positive_integer(&self, delta: f64) -> bool {
-        *self <= delta && self.is_integer(delta)
-    }
+pub fn is_close_to_a_non_positive_integer(x: f64, delta: f64) -> bool {
+    x <= delta && is_close_to_an_integer(x, delta)
 }
 
 pub fn repeat<F>(n: usize, f: F)
@@ -28,10 +21,19 @@ pub fn rand(min: f64, max: f64) -> f64 {
     min + (max - min) * random::<f64>()
 }
 
+// pub fn rand_non_integer(min: f64, max: f64) -> f64 {
+//     let r = rand(min, max);
+//     if r.is_integer(0.) { 
+//         rand_non_integer(min, max)
+//     } else {
+//         r
+//     }
+// }
+
 pub fn assert_approximately(x: f64, y: f64, eps: f64, message: &str){
     if x.is_nan() || y.is_nan() {
          assert!(x.is_nan() && y.is_nan(),
-            "{} --- only either value is nan: {}, {}", message, x, y);
+            "{} --- only either value is NaN: {}, {}", message, x, y);
     
     }else{
         let x_abs = x.abs();
@@ -39,7 +41,7 @@ pub fn assert_approximately(x: f64, y: f64, eps: f64, message: &str){
         
         if x_abs >= BIG_VALUE || y_abs >= BIG_VALUE {
             assert!(x * y > 0. &&  x_abs >= BIG_VALUE && y_abs >= BIG_VALUE,
-                "{} --- only either value diverge: {}, {}", message, x, y);
+                "{} --- only either value diverges: {}, {}", message, x, y);
 
         }else{
             if y_abs > 1. {
@@ -73,6 +75,10 @@ pub fn assert_diverging(x: f64, big_value: f64, message: &str){
          "{:?}: {} is not diverging (big value: {})", message, x, big_value);
 }
 
+// pub fn assert_nan(x: f64, message: &str){
+//     assert!(x.is_nan(), "{} returns NaN: {} appears", message, x);
+// }
+
 pub struct TestVariable<'a>{
     _name: &'a str,
     _range: (f64, f64),
@@ -89,6 +95,11 @@ impl<'a> TestVariable<'a> {
 
     pub fn range(&mut self, min: f64, max: f64) -> &mut Self {
         self._range = (min, max);
+        self
+    }
+
+    pub fn n(&mut self, n: usize) -> &mut Self {
+        self._n = n;
         self
     }
 
@@ -228,7 +239,7 @@ impl<'a, F, G> MathFnTest2<'a, F, G>
             message, f, g,
             _var0: TestVariable{ _name: "x", .. v },
             _var1: v,
-            _filter: Box::new(|_x, _y| true),
+            _filter: Box::new(|_, _| true),
             _epsilon: EPS
         }
     }
@@ -247,7 +258,7 @@ impl<'a, F, G> MathFnTest2<'a, F, G>
         self
     }
 
-    pub fn var1<'b, S>(&mut self, settings: S) -> &mut Self
+    pub fn var1<S>(&mut self, settings: S) -> &mut Self
         where S: Fn(&mut TestVariable<'a>)
     {
         settings(&mut self._var1);
@@ -288,4 +299,113 @@ pub fn should_the_same_mathfn2<'a, F, G>(message: &'a str, f: F, g: G) -> MathFn
           G: Fn(f64, f64) -> f64 + 'static
 {
     MathFnTest2::new(message, f, g)
+}
+
+pub struct MathFnTest3<'a, F, G>
+    where F: Fn(f64, f64, f64) -> f64 + 'a,
+          G: Fn(f64, f64, f64) -> f64 + 'a
+{
+    message: &'a str,
+    f: F,
+    g: G,
+    _var0: TestVariable<'a>,
+    _var1: TestVariable<'a>,
+    _var2: TestVariable<'a>,
+    _filter: Box<dyn Fn(f64, f64, f64) -> bool>,
+    _epsilon: f64
+}
+
+impl<'a, F, G> MathFnTest3<'a, F, G>
+    where F: Fn(f64, f64, f64) -> f64 + 'a,
+          G: Fn(f64, f64, f64) -> f64 + 'a
+{
+    fn new<'t>(message: &'t str, f: F, g: G) -> MathFnTest3<'t, F, G>{
+        let v = TestVariable{ _name: "z", _range: (-5., 5.), _n: 100, _is_integer: false };
+        MathFnTest3{
+            message, f, g,
+            _var0: TestVariable{ _name: "x", .. v },
+            _var1: TestVariable{ _name: "y", .. v },
+            _var2: v,
+            _filter: Box::new(|_, _, _| true),
+            _epsilon: EPS
+        }
+    }
+
+    pub fn filter<P>(&mut self, pred: P) -> &mut Self
+        where P: Fn(f64, f64, f64) -> bool + 'static
+    {
+        self._filter = Box::new(pred);
+        self
+    }
+
+    pub fn var0<S>(&mut self, settings: S) -> &mut Self
+        where S: Fn(&mut TestVariable<'a>)
+    {
+        settings(&mut self._var0);
+        self
+    }
+
+    pub fn var1<S>(&mut self, settings: S) -> &mut Self
+        where S: Fn(&mut TestVariable<'a>)
+    {
+        settings(&mut self._var1);
+        self
+    }
+
+    pub fn var2<S>(&mut self, settings: S) -> &mut Self
+        where S: Fn(&mut TestVariable<'a>)
+    {
+        settings(&mut self._var2);
+        self
+    }
+
+    pub fn epsilon(&mut self, eps: f64) -> &mut Self {
+        self._epsilon = eps;
+        self
+    }
+
+    fn assert_at(&self, x: f64, y: f64, z: f64){
+        if (self._filter)(x, y, z) {
+            assert_approximately((self.f)(x, y, z), (self.g)(x, y, z), self._epsilon,
+                &format!("{} at ({}, {}, {}) = ({}, {}, {})",
+                    self.message, self._var0._name, self._var1._name, self._var2._name, x, y, z));
+        }
+    }
+    
+    pub fn assert(&self){
+        self._var2.at_even_intervals(|z| {
+            self._var1.at_even_intervals(|y| {
+                self._var0.at_even_intervals(|x| {
+                    self.assert_at(x, y, z);
+                });
+            });
+        });
+        
+        if self._var0._is_integer && self._var1._is_integer && self._var2._is_integer { return; }
+        self._var2.at_random(|z| {
+            self._var1.at_random(|y| {
+                self._var0.at_random(|x| {
+                    self.assert_at(x, y, z);
+                });
+            });
+        });
+    }
+}
+
+pub fn should_the_same_mathfn3<'a, F, G>(message: &'a str, f: F, g: G) -> MathFnTest3<'a, F, G> 
+    where F: Fn(f64, f64, f64) -> f64 + 'static,
+          G: Fn(f64, f64, f64) -> f64 + 'static
+{
+    MathFnTest3::new(message, f, g)
+}
+
+fn non_finite_values_with(v: f64) -> Vec<f64>{
+    vec![f64::NAN, f64::INFINITY, f64:: NEG_INFINITY, v]
+}
+
+pub fn test_non_finite_args2_with<F>(v: f64, f: F)
+        where F: Fn(f64, f64) + 'static {
+    for (x, y) in non_finite_values_with(v).iter().zip(non_finite_values_with(v).iter()) {
+        f(*x, *y)
+    }
 }

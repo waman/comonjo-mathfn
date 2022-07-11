@@ -82,10 +82,7 @@ fn test_that_the_beta_function_diverges_if_the_one_of_the_arguments_is_zero_or_n
 #[test]
 fn test_the_values_of_beta_at_the_infinities_and_nan(){
 
-    let values = &[f64::NAN, f64:: NEG_INFINITY, f64::INFINITY, 0.5];
-    values.iter().zip(values.iter()).for_each(|(ra, rb)|{
-        let (a, b) = (*ra, *rb);
-
+    test_non_finite_args2_with(0.5, |a, b|{
         if a.is_nan() || b.is_nan() {
             assert!(beta(a, b).is_nan(), "Β({}, {}) = NaN", a, b);
 
@@ -109,7 +106,7 @@ fn test_the_values_of_beta_at_the_infinities_and_nan(){
         }else{
             assert!(beta(a, b).is_finite(), "|Β({}, {})| < ∞", a, b);
         }
-    });
+    })
 }
 
 #[test]
