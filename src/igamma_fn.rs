@@ -28,7 +28,7 @@ fn p_gamma_normalizable(s: f64, x: f64, log_gamma_s: f64) -> f64 {
     //     k += 1.;
     // }
 
-    // std::f64::NAN;
+    // f64::NAN;
 
     let a0 = x.powf(s) * (-x - log_gamma_s).exp() / s;
     hyper_geometric_series(a0, |k| x / (s + k), 1., 1000.)
@@ -46,7 +46,7 @@ fn hyper_geometric_series<F>(mut a: f64, mut nth_additional_factor: F, mut n0: f
         n0 += 1.;
     }
 
-    std::f64::NAN
+    f64::NAN
 }
 
 /// Return a value of the upper incomplete gamma function.
@@ -73,7 +73,7 @@ fn q_gamma_normalizable(s: f64, x: f64, log_gamma_s: f64) -> f64 {
         if result == prev { return result; }
         k += 1.;
     }
-    return std::f64::NAN;
+    return f64::NAN;
 
     // let la = 1.; let lb = 1. + x - s;
     // let mut laguerre2 = std::iter::successors(Some((1., la, lb)), |&(k, la, lb)|{
@@ -94,7 +94,7 @@ fn q_gamma_normalizable(s: f64, x: f64, log_gamma_s: f64) -> f64 {
     //     if result == prev { return result; }
     //     k += 1.;
     // }
-    // return std::f64::NAN;
+    // return f64::NAN;
 }
 
 //***** incomplete gamma function *****
@@ -112,7 +112,7 @@ pub fn iGamma(s: f64, x: f64) -> f64 {
 }
 
 #[test]
-fn igamma_converge_when_s_is_a_positive_integer_and_x_is_negative(){
+fn test_that_the_igamma_function_converges_if_s_is_a_positive_integer_and_x_is_negative(){
     use crate::test_util::*;
     repeat(10, ||{
         let x = rand(-10., 0.);
@@ -124,7 +124,7 @@ fn igamma_converge_when_s_is_a_positive_integer_and_x_is_negative(){
 }
 
 #[test]
-fn igamma_diverge_when_s_is_a_non_positive_integer_and_x_is_negative(){
+fn test_that_the_igamma_function_diverges_if_s_is_a_non_positive_integer_and_x_is_negative(){
     repeat(10, ||{
         let x = rand(-10., 0.);
         for n in 1..=5 {
@@ -132,6 +132,41 @@ fn igamma_diverge_when_s_is_a_non_positive_integer_and_x_is_negative(){
                 &format!("γ(-n, x) ~ ±∞ at (-n, x) = ({}, {})", -n, x));
         }
     });
+}
+
+#[cfg(test)]
+use crate::integer_util::*;
+
+#[test]
+fn test_the_values_of_igamma_at_non_finite_args(){
+
+    for (s, x) in non_finite_args2_with([-3., -2., 0.4, 2., 3.], 0.5){
+        let result = igamma(s, x);
+
+        if s.is_nan() || x.is_nan() {
+            assert!(result.is_nan(), "γ({}, {}) = NaN", s, x);
+            
+        }else if x.is_infinite() {
+            if x > 0. { // x = ∞
+                if s.is_infinite() {
+                    assert!(result.is_nan(), "γ(±∞, -∞) = NaN");
+                } else {
+                    assert_approximately(result, gamma(s), EPS, &format!("γ({}, ∞) = Γ({0})", s));
+                }
+            }else{ // x = -∞
+                if s.is_integer() {
+                    assert_eq!(result, f64::INFINITY, "γ({}, -∞) = ∞", s);
+                    // if s > 0. {
+                    //     assert_eq!(result, f64::INFINITY, "γ({}, -∞) = ∞", s);
+                    // }else{
+
+                    // }
+                }else{
+                    assert!(result.is_nan(), "γ({}, -∞) = NaN", s);
+                }
+            }
+        }
+    }
 }
 
 #[test]
@@ -174,6 +209,7 @@ fn test_the_incomplete_gamma_function_properties(){
         "Γ(s, 0) = Γ(s)",
             |s| iGamma(s, 0.), 
             |s| gamma(s))
+        .filter(|s| s > 0.)
         .var0(|v| v.name("s").range(0., 20.).end()).assert();
 
     use std::f64::consts;
@@ -228,7 +264,7 @@ pub fn q_gamma(s: f64, x: f64) -> f64 {
 }
 
 #[test]
-fn test_regularized_gamma_function_properties(){
+fn test_the_regularized_incomplete_gamma_function_properties(){
 
     should_the_same_mathfn2(
         "P(s, x) = γ(s, x)/Γ(s)",
@@ -271,7 +307,7 @@ pub fn erfc(x: f64) -> f64 {
 }
 
 #[test]
-fn test_error_function_properties(){
+fn test_the_error_function_properties(){
     let sqrt_pi_inv = 1. / (std::f64::consts::PI.sqrt());
 
     should_the_same_mathfn(
@@ -334,15 +370,15 @@ fn test_the_normal_distribution_cdf_properties(){
 /// Return a value of the lower CDF (cumulative distribution function) of the chi-square distribution.
 /// 
 /// Ref: 『改訂新版 Cによる標準アルゴリズム事典』不完全ガンマ関数 (incomplete gamma function) igamma.c
-pub fn p_chi2(x: f64, n_freedom: f64) -> f64 {
-    p_gamma(0.5 * n_freedom, 0.5 * x)
+pub fn p_chi2(x: f64, n_f: f64) -> f64 {
+    p_gamma(0.5 * n_f, 0.5 * x)
 }
 
 /// Return a value of the upper CDF of the chi-square distribution.
 /// 
 /// Ref: 『改訂新版 Cによる標準アルゴリズム事典』不完全ガンマ関数 (incomplete gamma function) igamma.c
-pub fn q_chi2(x: f64, n_freedom: f64) -> f64 {
-    q_gamma(0.5 * n_freedom, 0.5 * x)
+pub fn q_chi2(x: f64, n_f: f64) -> f64 {
+    q_gamma(0.5 * n_f, 0.5 * x)
 }
 
 #[test]

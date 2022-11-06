@@ -52,7 +52,7 @@ fn test_the_values_of_log_gamma_at_the_specific_points(){
 }
 
 #[test]
-fn test_the_values_of_log_gamma_at_the_infinities_and_nan(){
+fn test_the_values_of_log_gamma_at_non_finite_args(){
     assert_eq!(log_gamma(f64::INFINITY), f64::INFINITY, "logΓ(∞) = ∞");
     assert!(log_gamma(f64::NEG_INFINITY).is_nan(),      "logΓ(-∞) = NaN");
     assert!(log_gamma(f64::NAN).is_nan(),               "logΓ(NaN) = NaN");
@@ -147,7 +147,7 @@ fn test_that_the_gamma_function_diverges_at_zero_or_negative_integers(){
 }
 
 #[test]
-fn test_the_values_of_gamma_at_the_infinities_and_nan(){
+fn test_the_values_of_gamma_at_non_finite_args(){
     assert_eq!(gamma(f64::INFINITY), f64::INFINITY, "Γ(∞) = ∞");
     assert!(gamma(f64::NEG_INFINITY).is_nan(),      "Γ(-∞) = NaN");
     assert!(gamma(f64::NAN).is_nan(),               "Γ(NaN) = NaN");

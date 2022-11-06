@@ -399,13 +399,37 @@ pub fn should_the_same_mathfn3<'a, F, G>(message: &'a str, f: F, g: G) -> MathFn
     MathFnTest3::new(message, f, g)
 }
 
-fn non_finite_values_with(v: f64) -> Vec<f64>{
-    vec![f64::NAN, f64::INFINITY, f64:: NEG_INFINITY, v]
+use std::iter::*;
+
+pub fn non_finite_values() -> impl Iterator<Item=f64> {
+    [f64::NAN, f64::INFINITY, f64:: NEG_INFINITY].into_iter()
 }
 
-pub fn test_non_finite_args2_with<F>(v: f64, f: F)
-        where F: Fn(f64, f64) + 'static {
-    for (x, y) in non_finite_values_with(v).iter().zip(non_finite_values_with(v).iter()) {
-        f(*x, *y)
+pub fn non_finite_values_with<V>(finite_values: V) -> impl Iterator<Item=f64> 
+        where V: AsF64Vec {
+    non_finite_values().chain(finite_values.as_f64_iter())
+}
+
+pub fn non_finite_args2_with<V0, V1>(finite_values0: V0, finite_values1: V1)
+        -> impl Iterator<Item=(f64, f64)>
+        where V0: AsF64Vec, V1: AsF64Vec {
+    non_finite_values_with(finite_values0).zip(non_finite_values_with(finite_values1))
+}
+
+pub trait AsF64Vec{
+    fn as_f64_iter(self) -> Box<dyn Iterator<Item=f64>>;
+}
+
+impl AsF64Vec for f64{
+
+    fn as_f64_iter(self) -> Box<dyn Iterator<Item=f64>> {
+        Box::new(Some(self).into_iter())
+    }
+}
+
+impl<const N: usize> AsF64Vec for [f64; N]{
+
+    fn as_f64_iter(self) -> Box<dyn Iterator<Item=f64>>{
+        Box::new(self.into_iter())
     }
 }
